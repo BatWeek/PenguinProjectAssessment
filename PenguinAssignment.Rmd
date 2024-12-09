@@ -1,0 +1,436 @@
+---
+title: "Homework Template"
+output:
+  html_document: default
+  pdf_document: default
+date: "2023-10-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+*The following is a template .rmd RMarkdown file for you to use for your homework submission.*
+
+*Please Knit your .rmd to a PDF format or HTML and submit that with no identifiers like your name.*
+
+*To create a PDF, first install tinytex and load the package. Then press the Knit arrow and select "Knit to PDF".*
+
+## QUESTION 01: Data Visualisation for Science Communication
+
+*Create a figure using the Palmer Penguin dataset that is correct but badly communicates the data. **Do not make a boxplot**.*
+
+*Use the following references to guide you:*
+
+-   [*https://www.nature.com/articles/533452a*](https://www.nature.com/articles/533452a){.uri}
+-   [*https://elifesciences.org/articles/16800*](https://elifesciences.org/articles/16800){.uri}
+
+*Note: Focus on visual elements rather than writing misleading text on it.*
+
+### a) Provide your figure here:
+
+```{r, results='hide', message=FALSE, echo=FALSE}
+ 
+#Load required packages for Q1
+library(tidyverse)
+library(palmerpenguins)
+library(janitor)
+library(here)
+library(ggplot2)
+```
+
+```{r bad figure code, echo=FALSE}
+
+# There is no need to provide the code for your bad figure, just use echo=FALSE so the code is hidden. Make sure your figure is visible after you knit it. 
+
+#Clean data for easier data handling
+badpenguins_clean <- penguins_raw %>%
+  select(-Comments) %>%
+  select(-starts_with("Delta")) %>%
+     mutate(Species = case_when(
+      Species == "Adelie Penguin (Pygoscelis adeliae)" ~ "Adelie",
+      Species == "Chinstrap penguin (Pygoscelis antarctica)" ~ "Chinstrap",
+      Species == "Gentoo penguin (Pygoscelis papua)" ~ "Gentoo")) %>%
+  na.omit()
+
+
+#Split up data by species
+BadAdelie <- filter(badpenguins_clean, Species == "Adelie Penguin (Pygoscelis adeliae)")
+
+BadChinstrap <- filter(badpenguins_clean, Species == "Chinstrap penguin (Pygoscelis antarctica)")
+
+BadGentoo <- filter(badpenguins_clean, Species == "Gentoo penguin (Pygoscelis papua)")
+
+#Make a data frame of the median body mass for each species of penguin
+Baddata <- data.frame(Species = c("Adelie", "Chinstrap", "Gentoo"), Average = c(median(BadAdelie$`Body Mass (g)`), median(BadChinstrap$`Body Mass (g)`), median(BadGentoo$`Body Mass (g)`)))
+
+
+#Define colours
+badspecies_colours <- c("Adelie" = "green4",
+                     "Chinstrap" = "gold4",
+                     "Gentoo" = "cyan")
+
+worsespecies_colours <- c("Adelie" = "gold4",
+                     "Chinstrap" = "green4",
+                     "Gentoo" = "cyan")
+
+
+
+#Create plot
+BadBar <- ggplot(data = badpenguins_clean,
+       aes(x = Species, y = `Body Mass (g)`)) +
+  geom_bar(stat = "summary", fun = "mean", aes(fill = Species)) +
+  geom_jitter(aes(color = Species),
+              cex = 6,
+              position = position_jitter(
+                seed = 21,
+                width = 0.5)) +
+  coord_cartesian(xlim = c(1, NA), ylim = c(3000, 5500)) +
+  scale_fill_manual(values = badspecies_colours) +
+  scale_color_manual(values = worsespecies_colours) +
+  labs(title = "Plot of Mean and Individual Penguin Masses") +
+  theme_classic()
+
+
+#Show plot
+BadBar
+
+
+```
+
+### b) Write about how your design choices mislead the reader about the underlying data (200-300 words).
+
+------------------------------------------------------------------------
+
+## QUESTION 2: Data Pipeline
+
+*Write a data analysis pipeline in your .rmd RMarkdown file. You should be aiming to write a clear explanation of the steps, the figures visible, as well as clear code.*
+
+*You will be marked on the following:*
+
+### a) Your code for readability and functionality
+
+### b) Your figures for communication
+
+### c) Your text communication of your analysis
+
+------------------------------------------------------------------------
+
+### Introduction
+
+The Palmer Penguins dataset consists of data collected from three species of penguins in Antarctica: Adelie, Chinstrap, and Gentoo penguins. These penguins were captured from study nests and a variety of characteristics were measured (Gorman, 2014). Included in these metrics were a pair of measurements on the bills of the penguins: culmen length, and culmen depth. These measurements help describe the shape of the beak and understanding the relationship between them has implications for understanding the ecology of these penguins. The raw data were cleaned and a scatter plot was created, displaying the values of culmen width and culmen depth for each penguin which was measured within the dataset.
+
+```{r Library Setup, results='hide', message=FALSE}
+
+#Loads libraries from renv file, such that the exact versions of the packages used initally are also used when re-running the code.
+renv::restore()
+
+#Loads the required packages
+library(tidyverse)
+library(palmerpenguins)
+library(janitor)
+library(here)
+library(ggplot2)
+library(ragg)
+library(svglite)
+library(gridExtra)
+library(patchwork)
+
+```
+
+```{r Data Exploration}
+
+#Checks to see if user has "data" folder in the current working directory. If "no", creates the file so that the data files that will be created later are stored inside it, helping keep the directory organised. If "yes", notifies user that it does exist.
+ifelse(file.exists(here("data")), print("data folder exists"), dir.create(here("data")) )
+
+
+#Creates the raw data file within the "data" folder that has now been produced.
+write.csv(penguins_raw, here("data","penguins_raw.csv")) 
+
+
+#Cleans the data in the following steps:
+#1: Standardises all column headings by removing capitalisation and replacing spaces with "_"
+#2: Removes a series of columns which are not used in the analysis: "comments", "delta 15 N", "delta 13 C", "stage", "individual id", "clutch completion", "date egg"
+#3: Shortens all species names to make data handling easier
+#4: Removes all NA rows to avoid errors when using data
+penguins_clean <- penguins_raw %>%
+  clean_names() %>%
+  select(-comments) %>%
+  select(-starts_with("delta")) %>%
+  select(-stage) %>%
+  select(-individual_id) %>%
+  select(-clutch_completion) %>%
+  select(-date_egg) %>%
+   mutate(species = case_when(
+      species == "Adelie Penguin (Pygoscelis adeliae)" ~ "Adelie",
+      species == "Chinstrap penguin (Pygoscelis antarctica)" ~ "Chinstrap",
+      species == "Gentoo penguin (Pygoscelis papua)" ~ "Gentoo")) %>%
+  na.omit()
+
+
+#Saves the penguins_clean data as its own file, within the "data" folder, such that it can be viewed.
+write.csv(penguins_clean, here("data", "penguins_clean.csv"))
+
+
+#Sets the colours of the different penguin species, different colours to allow users to distinguish between penguin species.
+species_colours <- c("Adelie" = "darkorange",
+                     "Chinstrap" = "purple",
+                     "Gentoo" = "cyan4")
+
+
+#Sets what shape each point should be for each penguin species, to enable further distinction between different penguin species.
+species_shape <- c("Adelie" = 15,
+                   "Chinstrap" = 16,
+                   "Gentoo" = 17)
+
+
+#Plots a scatterplot as an exploratory figure, using the colours and shapes defined before, of the 3 species of bird, based on culmen length on the x-axis and culmen depth on the y-axis.
+exploratory_fig <- ggplot(
+  data = penguins_clean,
+  aes(x = culmen_length_mm,
+      y = culmen_depth_mm)) +
+  geom_point(aes(color = species, shape = species),
+             cex = 1.2) +
+  scale_color_manual(values = species_colours) +
+  scale_shape_manual(values = species_shape) +
+  labs(x = "Culmen length (mm)",
+       y = "Culmen depth (mm)",
+       title = "A plot of culmen length against culmen depth of three penguin species",) +
+  theme_bw()
+
+
+#Show the scatterplot
+exploratory_fig
+
+
+#Like before, checks to see if a "figures" folder exists within the current directory. If no, it creates it, such that all figures can be stored in the same place.
+ifelse(file.exists(here("figures")), 
+       print("figures folder exists"), 
+       dir.create(here("figures")))
+
+
+#Loads the "SaveSVG.R" file within the "functions" folder, containing a function to save graphics as .SVG files. This function is easy to find, should it need to be modified.
+source(here("functions", "SaveSVG.R"))
+
+
+#Saves the exploratory figure as a .svg file, which keeps a high resolution when viewed.
+save.as.svg(exploratory_fig, "figures/Penguins_exploratory.svg", 15, 15, 2)
+
+```
+
+### Hypothesis
+
+The null hypothesis is that there is no correlation between culmen length and culmen depth within penguin species.
+
+The alternative hypothesis is that there is a correlation between these measurements within the penguin species.
+
+### Statistical Methods
+
+The datapoints were separated based on penguin species, with each species plotted on its own scatter graph. The data were plotted as histograms to see if they followed a normal distribution, as this would determine whether a parametric or a non-parametric test would be appropriate for the statistical methods. These histograms are saved as an additional figure. For adelie and gentoo penguins, both culmen length and culmen depth appears to be sufficiently consistent with a normal distribution to use parametric tests. For chinstrap penguins, the histogram for culmen length does not appear to be as clear in displaying a normal distribution. A Shapiro-Wilk test was conducted on the culmen lengths for chinstrap penguins to test for normality. The P-value obtained from this was 0.1941, which was sufficiently large to assume that chinstrap culmen lengths were still normally distributed, so a parametric test may be used here as well. The Pearson's r correlation coefficient test was selected in order to characterise the relationship between the two variables of all three species.
+
+```{r Statistics}
+
+#Creates 3 sets of data based on the species of penguin involved, by removing all the rows that are not the species of interest (i.e: In "Adelie_data", removes all rows that are not "Adelie" in the "species" column).
+Adelie_data <- filter(penguins_clean, species == "Adelie")
+
+Chinstrap_data <- filter(penguins_clean, species == "Chinstrap")
+
+Gentoo_data <- filter(penguins_clean, species == "Gentoo")
+
+
+#Saves all Adelie points as a scatter plot to see any correlation
+Adelie_plot <- ggplot(
+  data = Adelie_data,
+  aes(x = culmen_length_mm,
+      y = culmen_depth_mm)) +
+  geom_point(aes(color = species, shape = species),
+             cex = 1.2, 
+             show.legend = FALSE) +
+  scale_color_manual(values = species_colours) +
+  scale_shape_manual(values = species_shape) +
+  labs(x = "Culmen length (mm)",
+       y = "Culmen depth (mm)",
+       title = "Adelie") +
+  theme_bw()
+
+
+#Saves all Chinstrap points as a scatter plot
+Chinstrap_plot <- ggplot(
+  data = Chinstrap_data,
+  aes(x = culmen_length_mm,
+      y = culmen_depth_mm)) +
+  geom_point(aes(color = species, shape = species),
+             cex = 1.2,
+             show.legend = FALSE) +
+  scale_color_manual(values = species_colours) +
+  scale_shape_manual(values = species_shape) +
+  labs(x = "Culmen length (mm)",
+       y = "Culmen depth (mm)",
+       title = "Chinstrap") +
+  theme_bw()
+
+
+#Saves all Gentoo points as a scatter plot
+Gentoo_plot <- ggplot(
+  data = Gentoo_data,
+  aes(x = culmen_length_mm,
+      y = culmen_depth_mm)) +
+  geom_point(aes(color = species, shape = species),
+             cex = 1.2,
+             show.legend = FALSE) +
+  scale_color_manual(values = species_colours) +
+  scale_shape_manual(values = species_shape) +
+  labs(x = "Culmen length (mm)",
+       y = "Culmen depth (mm)",
+       title = "Gentoo") +
+  theme_bw()
+
+
+
+#Plots the culmen lengths as a histogram to check for a normal distribution, with each histogram colour-coded according to species, using the same colour scheme seen in the exploratory figure for consistency.
+Adelie_length_hist <- ggplot(data = Adelie_data,
+                             aes(x = culmen_length_mm)) + 
+  geom_histogram(binwidth = 1, fill = "orange") +
+  labs(x = "Culmen length (mm)",
+       y = "Frequency",
+       title = "Adelie Culmen Lengths") +
+  theme_bw()
+Chinstrap_length_hist <- ggplot(data = Chinstrap_data,
+                                aes(x = culmen_length_mm)) +
+    geom_histogram(binwidth = 1, fill = "purple") +
+  labs(x = "Culmen length (mm)",
+       y = "Frequency",
+       title = "Chinstrap Culmen Lengths") +
+  theme_bw()
+Gentoo_length_hist <- ggplot(data = Gentoo_data,
+                                aes(x = culmen_length_mm)) +
+    geom_histogram(binwidth = 1, fill = "cyan4") +
+  labs(x = "Culmen length (mm)",
+       y = "Frequency",
+       title = "Gentoo Culmen Lengths") +
+  theme_bw()
+
+
+#Plots the culmen depths as a histogram to check for a normal distribution, once again labelling and colour-coding according to species.
+Adelie_depth_hist <- ggplot(data = Adelie_data,
+                             aes(x = culmen_depth_mm)) + 
+  geom_histogram(binwidth = 0.5, fill = "orange") +
+  labs(x = "Culmen depth (mm)",
+       y = "Frequency",
+       title = "Adelie Culmen Depths") +
+  theme_bw()
+Chinstrap_depth_hist <- ggplot(data = Chinstrap_data,
+                                aes(x = culmen_depth_mm)) +
+    geom_histogram(binwidth = 0.5, fill = "purple") +
+  labs(x = "Culmen depth (mm)",
+       y = "Frequency",
+       title = "Chinstrap Culmen Depths") +
+  theme_bw()
+Gentoo_depth_hist <- ggplot(data = Gentoo_data,
+                                aes(x = culmen_depth_mm)) +
+    geom_histogram(binwidth = 0.5, fill = "cyan4") +
+  labs(x = "Culmen depth (mm)",
+       y = "Frequency",
+       title = "Gentoo Culmen Depths") +
+  theme_bw()
+
+
+#Combines all histograms into a single figure
+All_hists <- (Adelie_length_hist | Adelie_depth_hist) / (Chinstrap_length_hist | Chinstrap_depth_hist) / (Gentoo_length_hist | Gentoo_depth_hist)
+All_hists
+
+
+#Save the histograms as a figure
+save.as.svg(All_hists, "figures/Penguins_histograms.svg", 15, 15, 2)
+
+
+#The Chinstrap culmen length histogram seems like it may not be normal, so a Shapiro-Wilk test is conducted on this data to clarify this. The outcome is that it has a large enough p-value (0.1941 > 0.05) to still be considered normally distributed.
+shapiro.test(Chinstrap_data$culmen_length_mm)
+
+
+#As the data appear to follow a normal distribution, a parametric test is appropriate for these hypotheses. This code runs a test for correlation between culmen length and depth for all 3 species of penguins, and saves each as a "_test" object, allowing extraction of the outputs at a later stage.
+Adelie_test <- cor.test(~ culmen_length_mm + culmen_depth_mm, data = Adelie_data)
+
+Chinstrap_test <- cor.test(~ culmen_length_mm + culmen_depth_mm, data = Chinstrap_data)
+
+Gentoo_test <- cor.test(~ culmen_length_mm + culmen_depth_mm, data = Gentoo_data)
+
+```
+
+### Results & Discussion
+
+A results table was produced from the outputs of the statistical test and was placed in a figure containing the three plots of culmen length against culmen depth. Each of these three scatter plots appear to show a positive correlation between culmen length and depth. The correlation coefficients obtained from the chinstrap penguins and the gentoo penguins were both approximately 0.654, suggesting that in both the chinstrap and gentoo penguins, there is a strong positive correlation between culmen length and culmen depth. This also appears to be significant, given the small P-values from both of these species. The adelie penguins appear to have a weaker positive correlation with a coefficient of approximately 0.386, but the result is still significant as the P-value is still less than 0.05, suggesting that there is a less than 5% probability that this result is due to chance. This means that the null hypothesis can be rejected for all three penguin species.
+
+In general, a larger culmen length also means a larger culmen depth in all three species of penguin. These correlations hint that the bills of penguins uniformly increase in size and keep a consistent shape across all individuals within a species. This could mean that all individuals within species use their bills for a similar function, with individuals within species sharing similar food sources, for example.
+
+It is possible that the adelie penguins may have a weaker correlation between culmen length and culmen depth due to more variation in the adelie population sampled. In the Palmer Penguins dataset, penguins were sampled from three islands: Torgersen, Biscoe, and Dream islands. All Gentoo penguins in the data were sampled from Biscoe island and all chinstrap penguins were sampled from Dream island, but adelie penguins were sampled from all three islands. Differences in environment may result in different bill shapes and hence, more variation within the species sampled on account of this confounding factor. It may be useful to see if island does have an effect on bill measurements by comparing different gentoo or chinstrap penguin populations and seeing how they vary between islands.
+
+```{r Plotting Results}
+
+#Creates an output table - a data frame of the T-values, Degrees of Freedom (Df), P.values, and #Correlation Coefficients (r) taken from the correlation tests:
+Output_table <- data.frame(
+  Species = c("Adelie", "Chinstrap", "Gentoo"),
+  T.value = c(Adelie_test$statistic, Chinstrap_test$statistic,
+              Gentoo_test$statistic),
+  Df = c(Adelie_test$parameter, Chinstrap_test$parameter, Gentoo_test$parameter),
+  P.value = c(Adelie_test$p.value, Chinstrap_test$p.value, Gentoo_test$p.value),
+  Correlation.Coefficient = c(Adelie_test$estimate, Chinstrap_test$estimate,
+                              Gentoo_test$estimate)
+)
+
+
+#Save the output table as a format that can be displayed visually
+StatTable <- tableGrob(Output_table)
+
+
+#This combines the 3 scatterplots of each species with the output table of the statistics
+Combined <- (Adelie_plot | Chinstrap_plot | Gentoo_plot) / (StatTable)
+Combined
+
+#Saves the results as a figure in the "figures" folder
+save.as.svg(Combined, "figures/Penguins_results.svg", 15, 10, 2)
+
+
+```
+
+### Conclusion
+
+There is a significant positive correlation between culmen length and culmen depth within all three species of penguins sampled in the Palmer penguins dataset. The null hypothesis is rejected in all three species.
+
+**References:**
+
+Gorman, K. B. et al. (2014) Ecological sexual dimorphism and environmental variability within a community of Antarctic penguins (Genus Pygoscelis). *PloS one*. [Online] 9 (3).
+
+------------------------------------------------------------------------
+
+## QUESTION 3: Open Science
+
+### a) GitHub
+
+*Upload your RProject you created for **Question 2** and any files and subfolders used to GitHub. Do not include any identifiers such as your name. Make sure your GitHub repo is public.*
+
+*GitHub link:*
+
+*You will be marked on your repo organisation and readability.*
+
+### b) Share your repo with a partner, download, and try to run their data pipeline.
+
+*Partner's GitHub link:*
+
+*You **must** provide this so I can verify there is no plagiarism between you and your partner.*
+
+### c) Reflect on your experience running their code. (300-500 words)
+
+-   *What elements of your partner's code helped you to understand their data pipeline?*
+
+-   *Did it run? Did you need to fix anything?*
+
+-   *What suggestions would you make for improving their code to make it more understandable or reproducible, and why?*
+
+-   *If you needed to alter your partner's figure using their code, do you think that would be easy or difficult, and why?*
+
+### d) Reflect on your own code based on your experience with your partner's code and their review of yours. (300-500 words)
+
+-   *What improvements did they suggest, and do you agree?*
+
+-   *What did you learn about writing code for other people?*
