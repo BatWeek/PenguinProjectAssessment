@@ -3,6 +3,9 @@ title: "Reproducible Science Assignment"
 output:
   html_document: default
   pdf_document: default
+  format:
+    html:
+      embed-resources: true
 date: "2023-10-09"
 ---
 
