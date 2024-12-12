@@ -52,10 +52,10 @@ Baddata <- data.frame(Species = c("Adelie", "Chinstrap", "Gentoo"), Average = c(
 
 #Define colours
 badspecies_colours <- c("Adelie" = "green4",
-                     "Chinstrap" = "gold4",
+                     "Chinstrap" = "red3",
                      "Gentoo" = "cyan")
 
-worsespecies_colours <- c("Adelie" = "gold4",
+worsespecies_colours <- c("Adelie" = "red3",
                      "Chinstrap" = "green4",
                      "Gentoo" = "cyan")
 
@@ -85,11 +85,19 @@ BadBar
 
 ### b) Write about how your design choices mislead the reader about the underlying data (200-300 words).
 
+The first issue here is that the y-axis has been manipulated, beginning at 3000 rather than 0. This hides the bottom of the bars representing the mean body masses for each species of penguin, and only shows how these bars differ, making the mean of the gentoo penguins look much larger than the mean of the other two species. This difference is further emphasized by using brighter colours with the gentoo penguins to make the bar appear even larger through irradiation (Kosslyn, 2006), and makes it stand out more. This may mislead the reader to think that gentoo penguins are a lot more massive than adelie or chinstrap penguins, when the true difference isn’t as pronounced.
+
+The jitter plot of the masses of each individual penguin based on species makes the plot more cluttered. Each point is large, which results in them hiding data displayed in the graph. The points are obscuring the top of the adelie and chinstrap mean bars, which is hiding the small difference in height that exists between these two bars, possibly misleading the reader into thinking that these two means are exactly the same. This is not helped by the colour choice of these two bars which means they may not be distinguishable for colourblind people. Meanwhile, plotting the gentoo points in the same colour as the bar means that many points smaller than the mean mass of the gentoo penguins are hidden, and we only see those which are larger than the mean – making the mean mass of the gentoo penguins seem even larger. Finally, the lack of gridlines makes it difficult for the reader to relate data values to the y-axis, especially the gentoo data which is further from the axis, further warping the view of the data.
+
+
+
 ------------------------------------------------------------------------
 
 ## QUESTION 2: Data Pipeline
 
 ### Introduction
+
+The Palmer Penguins dataset consists of data collected from three species of penguins in Antarctica: Adelie, Chinstrap, and Gentoo penguins. Penguins were captured from study nests and a variety of characteristics were measured (Gorman, 2014). Included were a pair of measurements on the bills of the penguins: culmen length, and culmen depth, describing the shape of the beak. The raw data were cleaned and a scatter plot was created, displaying the values of culmen width and culmen depth for each penguin which was measured within the dataset.
 
 ```{r Library Setup, results='hide', message=FALSE}
 
@@ -286,6 +294,12 @@ Gentoo_test <- cor.test(~ culmen_length_mm + culmen_depth_mm, data = Gentoo_data
 
 ### Results & Discussion
 
+All three scatter plots appear to show a positive correlation between culmen length and depth. The correlation coefficients obtained from the chinstrap penguins and the gentoo penguins were both approximately 0.654, suggesting that in both the chinstrap and gentoo penguins, there is a strong positive correlation between culmen length and culmen depth. This also appears to be significant, given the small P-values from both species. The adelie penguins appear to have a weaker positive correlation with a coefficient of approximately 0.386, but the result is still significant as the P-value is still less than 0.05, suggesting that there is a less than 5% probability that this result is due to chance. This means that the null hypothesis can be rejected for all three penguin species.
+
+In general, a larger culmen length also means a larger culmen depth in all three species of penguin. These correlations hint that the bills of penguins uniformly increase in size and keep a consistent shape across all individuals within a species. This could mean that all individuals within species use their bills for a similar function, with individuals within species sharing similar food sources, for example.
+
+It is possible that the adelie penguins may have a weaker correlation between culmen length and culmen depth due to more variation in the adelie population sampled. Adelie penguins were sampled from all three islands, but gentoo and chinstrap penguins were only sampled from one island each. This may serve as a confounding factor which could cause differences in these measurements, with bill shape potentially varying with different environments. It may be useful to see if island does have an effect on bill measurements by comparing gentoo or chinstrap penguin populations and seeing how they vary between islands.
+
 ```{r Plotting Results}
 
 #Creates an output table - a data frame of the T-values, Degrees of Freedom (Df), P.values, and #Correlation Coefficients (r) taken from the correlation tests:
@@ -315,9 +329,7 @@ Combined
 
 There is a significant positive correlation between culmen length and culmen depth within all three species of penguins sampled in the Palmer penguins dataset. The null hypothesis is rejected in all three species.
 
-**References:**
 
-Gorman, K. B. et al. (2014) Ecological sexual dimorphism and environmental variability within a community of Antarctic penguins (Genus Pygoscelis). *PloS one*. [Online] 9 (3).
 
 ------------------------------------------------------------------------
 
@@ -329,22 +341,30 @@ Gorman, K. B. et al. (2014) Ecological sexual dimorphism and environmental varia
 
 ### b) Share your repo with a partner, download, and try to run their data pipeline.
 
-*Partner's GitHub link:*
-
-*You **must** provide this so I can verify there is no plagiarism between you and your partner.*
+*Partner's GitHub link:* <https://github.com/cheesetoasties/Penguin_Assignment>
 
 ### c) Reflect on your experience running their code. (300-500 words)
 
--   *What elements of your partner's code helped you to understand their data pipeline?*
+While running the code, I encountered two issues which I was able to resolve. The first issue arose when trying to install the contents of the renv.lock file, where the specific package versions my partner used failed to install on the computer. This turned out to be an issue on my end, as the installation of previous versions of packages requires specific tools such as Rtools43, which had not been installed on my computer prior to this. The rest of the code functioned quite well, aside from a minor issue with the results figure where the colours of each species of penguin didn’t show up on the legend. This was resolved by replacing an “NA” with the species colours object.
 
--   *Did it run? Did you need to fix anything?*
+The code was quite understandable, and this was due to the frequent comments. They were offset from the main code, which made the comments easier to read and understand. The code also included points where the outputs of certain functions (such as the “summarise” function producing the “adelieresults” object) were shown, which significantly helped code comprehension by showing what specific functions did. However, there were other times where the outputs showed too much and felt a bit overwhelming, such as in the outputs of the linear models.
 
--   *What suggestions would you make for improving their code to make it more understandable or reproducible, and why?*
+While the reproducibility is good, it could be made even more understandable by using more white space. For example, the “results” section would benefit greatly from having more space separating chunks of code rather than only comments. This would help break up the code more, although this may be down to personal preference. There also appears to be some redundancy in the code at various points. For example, the code uses the “source()” function multiple times to take functions from the “Plotting.R” file when it only needs to be done once. This clutters up the code and may make it more difficult to understand. Removing this could help understandability.
 
--   *If you needed to alter your partner's figure using their code, do you think that would be easy or difficult, and why?*
+If the figures needed to be modified, it would be easy to modify some parts and difficult to modify others. For example, the colours of each species of penguin could be easily modified as this is specified in its own object, but the shape of the points that represent each species would be more difficult to modify, as these are not explicitly specified. In addition, modifying other parts of the figures, such as titles, would be more difficult as they would need to be modified twice – once in the R.markdown file, and once in the “Plotting.R” file containing the function used to save the figures. Potentially this could be made easier by re-writing the code such that the figures are saved as an object in the R.markdown file, which can then be input into the function used to save them as a .png file.
 
 ### d) Reflect on your own code based on your experience with your partner's code and their review of yours. (300-500 words)
 
--   *What improvements did they suggest, and do you agree?*
+The main improvement that my partner suggested was to create additional functions when generating the figures. For example, the same code was re-written multiple times to produce the histograms when testing for normality, and my partner suggested that instead of using ggplot() multiple times, a newly written function could be used instead. I agree with this – utilising a function to do this rather than using repeated code would shorten the code, and would also enable the function to be used for other variables. A correctly written function with the appropriate arguments would make code modification easier. In addition, my partner also suggested that my results figure in R should have a better name than “combined” – I also agree with this. It is not very descriptive and may cause confusion because of this.
 
--   *What did you learn about writing code for other people?*
+One major thing that I learned from this was that it is important to be selective when it comes to writing code for other people. It is important to only include what is necessary for code to function, and what is necessary for understanding. Redundant or unnecessary code may limit understanding for the reader as they may not be sure why it is there, while some outputs may limit understanding for the reader and it may be more suitable to leave them out. Using functions to cut down on repeated code is also beneficial, as it doesn’t only increase understanding by reducing the amount of code, but it is also useful for modification and reproducing the statistical methods. Producing a function for the histograms, for example, would allow other people to use this method to test for normality as well.
+
+Another thing that is important to know is that variation between people exists. For example, different people have different software on their computers and this different software may have implications for reproducibility. If I was unable to install Rtools, then I may have been unable to reproduce the exact package versions that my partner used. As such, including information as to what software can be used to install the contents of files like the renv.lock file would enable others to reproduce those steps. It is also important to bear in mind that other people may have personal preferences as to how code is formatted, how objects are named, or where white space should be, for example. Your own preferences may limit the understanding of other people when reviewing your code, and if they understand it less, they would also be less able to reproduce it. While standardisation and more conventions as to how code is written may help, it may also help to ensure that the way you write code is consistent, such that once people understand the personal preferences, it can be applied to the whole code. Efficient communication through object names, comments, and outputs of certain functions may help others understand code, and hence, reproduce it.
+
+## **Bibliography**
+
+Gorman, K. B. et al. (2014) Ecological sexual dimorphism and environmental variability within a community of Antarctic penguins (Genus Pygoscelis). *PloS one*. [Online] 9 (3). https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0090081#s2 (Accessed: 08/12/24)
+
+Huff, D. (2023) *How to lie with statistics*. New edition. London: Penguin Books. [Online]. https://www.vlebooks.com/Product/Index/3197094?page=0&startBookmarkId=-1 (Accessed 08/12/24)
+
+Kosslyn, S.M. (2006) *Graph Design for the Eye and Mind*. 1st edn. New York: Oxford University Press. [Online]. https://ebookcentral.proquest.com/lib/oxford/detail.action?docID=584606 (Accessed: 09/12/24).
